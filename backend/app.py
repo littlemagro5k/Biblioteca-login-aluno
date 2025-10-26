@@ -44,7 +44,16 @@ def row_to_livro(row):
 
 @app.route('/')
 def index():
-    return app.send_static_file('index.html')
+    if app.static_folder:
+        index_path = os.path.join(app.static_folder, 'index.html')
+        if os.path.exists(index_path):
+            return app.send_static_file('index.html')
+
+    mensagem = (
+        'Frontend não encontrado. Execute `npm run dev` para desenvolvimento '
+        'ou `npm run build` para gerar os arquivos estáticos.'
+    )
+    return mensagem, 503, {'Content-Type': 'text/plain; charset=utf-8'}
 
 
 @app.route('/login', methods=['POST'])
