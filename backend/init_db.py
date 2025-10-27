@@ -50,6 +50,29 @@ def criar_banco():
         '''
     )
 
+    cur.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS alunos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome_completo TEXT NOT NULL,
+            serie TEXT NOT NULL,
+            sala TEXT NOT NULL,
+            senha TEXT NOT NULL
+        )
+        '''
+    )
+
+    ensure_columns(
+        cur,
+        'alunos',
+        [
+            ('nome_completo', "TEXT NOT NULL DEFAULT ''"),
+            ('serie', "TEXT NOT NULL DEFAULT ''"),
+            ('sala', "TEXT NOT NULL DEFAULT ''"),
+            ('senha', "TEXT NOT NULL DEFAULT ''"),
+        ],
+    )
+
     conn.commit()
 
     cur.execute('SELECT COUNT(*) FROM livros')

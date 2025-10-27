@@ -18,10 +18,25 @@ _ensure_flask_installed()
 
 from flask import Flask, jsonify, request, session
 
+try:  # Permite executar como pacote (backend.app) ou script direto.
+    from .init_db import criar_banco
+except ImportError:  # pragma: no cover - fallback quando executado diretamente
+    from init_db import criar_banco
+
 app = Flask(__name__, static_folder='static', static_url_path='')
 app.secret_key = 'chave_super_secreta'  # troque por algo seguro
 
 DB = 'biblioteca.db'
+
+
+def _ensure_schema():
+    try:
+        criar_banco()
+    except Exception as exc:  # pragma: no cover - log and continue
+        raise SystemExit(f'Falha ao preparar o banco de dados: {exc}')
+
+
+_ensure_schema()
 
 
 def conectar():
@@ -39,6 +54,15 @@ def row_to_livro(row):
         'quantidade': row['quantidade'] if row['quantidade'] is not None else 0,
         'capa': row['capa'] or '',
         'ano': row['ano'],
+    }
+
+
+def row_to_aluno(row):
+    return {
+        'id': row['id'],
+        'nomeCompleto': row['nome_completo'],
+        'serie': row['serie'],
+        'sala': row['sala'],
     }
 
 
@@ -83,6 +107,92 @@ def login():
         return jsonify({'mensagem': 'Login realizado com sucesso!', 'usuario': row['username']})
 
     return jsonify({'erro': 'Usuário ou senha incorretos'}), 401
+
+
+@app.route('/api/alunos', methods=['POST'])
+def cadastrar_aluno():
+    data = request.get_json() or {}
+    nome = (data.get('nomeCompleto') or '').strip()
+    serie = (data.get('serie') or '').strip()
+    sala = (data.get('sala') or '').strip()
+    senha = data.get('senha') or ''
+
+    if not nome or not serie or not sala or not senha:
+        return jsonify({'erro': 'Nome, série, sala e senha são obrigatórios.'}), 400
+    if len(senha) < 4:
+        return jsonify({'erro': 'A senha deve ter pelo menos 4 caracteres.'}), 400
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        SELECT id
+        FROM alunos
+        WHERE lower(nome_completo) = lower(?)
+          AND serie = ?
+          AND sala = ?
+        ''',
+        (nome, serie, sala),
+    )
+    if cur.fetchone():
+        conn.close()
+        return jsonify({'erro': 'Aluno já cadastrado para esta turma.'}), 409
+
+    cur.execute(
+        '''
+        INSERT INTO alunos (nome_completo, serie, sala, senha)
+        VALUES (?, ?, ?, ?)
+        ''',
+        (nome, serie, sala, senha),
+    )
+    aluno_id = cur.lastrowid
+    conn.commit()
+
+    cur.execute(
+        'SELECT id, nome_completo, serie, sala FROM alunos WHERE id = ?',
+        (aluno_id,),
+    )
+    aluno = cur.fetchone()
+    conn.close()
+
+    return (
+        jsonify(
+            {
+                'mensagem': 'Aluno cadastrado com sucesso!',
+                'aluno': row_to_aluno(aluno),
+            }
+        ),
+        201,
+    )
+
+
+@app.route('/api/alunos/login', methods=['POST'])
+def login_aluno():
+    data = request.get_json() or {}
+    nome = (data.get('nomeCompleto') or '').strip()
+    senha = data.get('senha') or ''
+
+    if not nome or not senha:
+        return jsonify({'erro': 'Nome completo e senha são obrigatórios.'}), 400
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute(
+        '''
+        SELECT id, nome_completo, serie, sala
+        FROM alunos
+        WHERE lower(nome_completo) = lower(?)
+          AND senha = ?
+        ''',
+        (nome, senha),
+    )
+    aluno = cur.fetchone()
+    conn.close()
+
+    if not aluno:
+        return jsonify({'erro': 'Aluno não encontrado ou senha incorreta.'}), 401
+
+    return jsonify(row_to_aluno(aluno))
 
 
 @app.route('/logout', methods=['POST'])

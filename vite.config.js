@@ -6,6 +6,20 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/login': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/logout': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     outDir: 'static',
