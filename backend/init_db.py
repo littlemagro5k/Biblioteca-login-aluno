@@ -41,17 +41,6 @@ def criar_banco():
 
     cur.execute(
         '''
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
-            senha TEXT NOT NULL,
-            email TEXT
-        )
-        '''
-    )
-
-    cur.execute(
-        '''
         CREATE TABLE IF NOT EXISTS alunos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome_completo TEXT NOT NULL,
@@ -104,16 +93,34 @@ def criar_banco():
             livros,
         )
 
-    cur.execute('SELECT COUNT(*) FROM usuarios')
-    if cur.fetchone()[0] == 0:
-        usuarios = [
-            ('admin', '1234', 'admin@leiasj.com'),
-            ('aluno1', 'senha123', 'aluno1@email.com'),
-            ('aluno2', 'senha456', 'aluno2@email.com'),
-        ]
-        cur.executemany(
-            'INSERT INTO usuarios (username, senha, email) VALUES (?, ?, ?)',
-            usuarios,
+    cur.execute('DROP TABLE IF EXISTS usuarios')
+
+    cur.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS bibliotecarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome_completo TEXT NOT NULL,
+            codigo TEXT NOT NULL UNIQUE,
+            senha TEXT NOT NULL
+        )
+        '''
+    )
+
+    cur.execute(
+        '''
+        SELECT id
+        FROM bibliotecarios
+        WHERE lower(nome_completo) = lower(?) OR codigo = ?
+        ''',
+        ("AdmLeia", "LEIA-SJ-2025"),
+    )
+    if cur.fetchone() is None:
+        cur.execute(
+            '''
+            INSERT INTO bibliotecarios (nome_completo, codigo, senha)
+            VALUES (?, ?, ?)
+            ''',
+            ("AdmLeia", "LEIA-SJ-2025", "12345"),
         )
 
     conn.commit()

@@ -80,33 +80,47 @@ def index():
     return mensagem, 503, {'Content-Type': 'text/plain; charset=utf-8'}
 
 
-@app.route('/login', methods=['POST'])
-def login():
+@app.route('/api/bibliotecario/login', methods=['POST'])
+def login_bibliotecario():
     data = request.get_json() or {}
-    usuario = (data.get('usuario') or '').strip()
+    nome = (data.get('nomeCompleto') or '').strip()
+    codigo = (data.get('codigo') or '').strip()
     senha = data.get('senha') or ''
 
-    if not usuario or not senha:
-        return jsonify({'erro': 'Usuário e senha são obrigatórios'}), 400
-
-    if usuario == 'admin' and senha == '1234':
-        session['usuario'] = usuario
-        return jsonify({'mensagem': 'Login realizado com sucesso!', 'usuario': usuario})
+    if not nome or not codigo or not senha:
+        return jsonify({'erro': 'Nome completo, código e senha são obrigatórios.'}), 400
 
     conn = conectar()
     cur = conn.cursor()
     cur.execute(
-        "SELECT username FROM usuarios WHERE username = ? AND senha = ?",
-        (usuario, senha),
+        '''
+        SELECT id, nome_completo, codigo
+        FROM bibliotecarios
+        WHERE lower(nome_completo) = lower(?)
+          AND codigo = ?
+          AND senha = ?
+        ''',
+        (nome, codigo, senha),
     )
     row = cur.fetchone()
     conn.close()
 
-    if row:
-        session['usuario'] = row['username']
-        return jsonify({'mensagem': 'Login realizado com sucesso!', 'usuario': row['username']})
+    if not row:
+        return jsonify({'erro': 'Bibliotecário não encontrado ou dados inválidos.'}), 401
 
-    return jsonify({'erro': 'Usuário ou senha incorretos'}), 401
+    session['bibliotecario_id'] = row['id']
+    session['bibliotecario_nome'] = row['nome_completo']
+
+    return jsonify(
+        {
+            'mensagem': 'Login realizado com sucesso!',
+            'bibliotecario': {
+                'id': row['id'],
+                'nomeCompleto': row['nome_completo'],
+                'codigo': row['codigo'],
+            },
+        }
+    )
 
 
 @app.route('/api/alunos', methods=['POST'])
@@ -197,7 +211,8 @@ def login_aluno():
 
 @app.route('/logout', methods=['POST'])
 def logout():
-    session.pop('usuario', None)
+    session.pop('bibliotecario_id', None)
+    session.pop('bibliotecario_nome', None)
     return jsonify({'mensagem': 'Logout realizado'})
 
 
@@ -234,7 +249,7 @@ def listar_livros():
 
 @app.route('/api/livros', methods=['POST'])
 def adicionar_livro():
-    if 'usuario' not in session:
+    if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
     data = request.get_json() or {}
@@ -286,7 +301,7 @@ def adicionar_livro():
 
 @app.route('/api/livros/<int:livro_id>', methods=['PUT'])
 def atualizar_livro(livro_id):
-    if 'usuario' not in session:
+    if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
     data = request.get_json() or {}
@@ -349,7 +364,7 @@ def atualizar_livro(livro_id):
 
 @app.route('/api/livros/<int:livro_id>', methods=['DELETE'])
 def excluir_livro(livro_id):
-    if 'usuario' not in session:
+    if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
     data = request.get_json() or {}

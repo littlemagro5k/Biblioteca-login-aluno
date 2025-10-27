@@ -28,10 +28,10 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
   return payload;
 }
 
-export async function loginBibliotecario(usuario, senha) {
-  return request('/login', {
+export async function loginBibliotecario(nomeCompleto, codigo, senha) {
+  return request('/api/bibliotecario/login', {
     method: 'POST',
-    body: { usuario, senha },
+    body: { nomeCompleto, codigo, senha },
   });
 }
 

@@ -15,12 +15,10 @@ export default function Login() {
   const [serie, setSerie] = useState("");
   const [sala, setSala] = useState("");
   const [funcao, setFuncao] = useState("");
-  const [turno, setTurno] = useState("");
   const [senha, setSenha] = useState("");
   const [codigo, setCodigo] = useState("");
   const navigate = useNavigate();
 
-  const turnos = ["Manhã", "Tarde", "Noite"];
   const funcoes = [
     "Professor",
     "Diretoria",
@@ -41,9 +39,8 @@ export default function Login() {
     }
     if (tipo !== "bibliotecario") {
       setCodigo("");
-    }
-    if (tipo === "aluno") {
-      setTurno("");
+    } else {
+      setModo("login");
     }
   }, [tipo]);
 
@@ -63,11 +60,16 @@ export default function Login() {
 
     const nomeFormatado = nome.trim();
     const nomeLower = nomeFormatado.toLowerCase();
+    const codigoFormatado = codigo.trim();
 
     const key = "leiasj_users_v1";
     const users = JSON.parse(localStorage.getItem(key)) || [];
 
     if (modo === "cadastro") {
+      if (tipo === "bibliotecario") {
+        alert("Somente administradores podem cadastrar bibliotecários.");
+        return;
+      }
       if (tipo === "aluno") {
         if (!serie || !sala)
           return alert("Selecione a série e a sala do aluno.");
@@ -91,7 +93,6 @@ export default function Login() {
             serie: serieAluno,
             sala: salaAluno,
             funcao: "",
-            turno: "",
             codigo: "",
           };
           const nextUsers = [
@@ -113,9 +114,6 @@ export default function Login() {
         return;
       }
 
-      if (tipo === "bibliotecario" && codigo !== "LEIA-SJ-2025")
-        return alert("Código de bibliotecário inválido.");
-
       const existe = users.find(
         (u) => (u.nome || "").toLowerCase() === nomeLower && u.tipo === tipo
       );
@@ -129,8 +127,7 @@ export default function Login() {
         serie: "",
         sala: "",
         funcao,
-        turno,
-        codigo,
+        codigo: codigoFormatado,
       };
       const nextUsers = [...users, novo];
       localStorage.setItem(key, JSON.stringify(nextUsers));
@@ -140,33 +137,54 @@ export default function Login() {
     }
 
     if (tipo === "bibliotecario") {
+      if (!codigoFormatado)
+        return alert("Informe o código do bibliotecário.");
+
+      let resposta;
       try {
-        await loginBibliotecario(nomeFormatado, senha);
+        resposta = await loginBibliotecario(
+          nomeFormatado,
+          codigoFormatado,
+          senha
+        );
       } catch (error) {
         return alert(error.message || "Falha ao realizar login.");
       }
 
-      let user = users.find(
-        (u) => (u.nome || "").toLowerCase() === nomeLower && u.tipo === tipo
+      const bibliotecarioDados = resposta?.bibliotecario || null;
+      const nomeBibliotecario =
+        bibliotecarioDados?.nomeCompleto ?? nomeFormatado;
+      const codigoBibliotecario =
+        bibliotecarioDados?.codigo ?? codigoFormatado;
+      const idBibliotecario = bibliotecarioDados?.id ?? Date.now();
+
+      const usuarioBibliotecario = {
+        id: idBibliotecario,
+        nome: nomeBibliotecario,
+        tipo,
+        senha,
+        serie: "",
+        sala: "",
+        funcao: "",
+        codigo: codigoBibliotecario,
+      };
+
+      const nextUsers = [
+        ...users.filter(
+          (u) =>
+            !(
+              u.tipo === "bibliotecario" &&
+              (u.codigo || "").toLowerCase() ===
+                codigoBibliotecario.toLowerCase()
+            )
+        ),
+        usuarioBibliotecario,
+      ];
+      localStorage.setItem(key, JSON.stringify(nextUsers));
+      localStorage.setItem(
+        "leiasj_logged_user",
+        JSON.stringify(usuarioBibliotecario)
       );
-
-      if (!user) {
-        user = {
-          id: Date.now(),
-          nome: nomeFormatado,
-          tipo,
-          senha,
-          serie: "",
-          sala: "",
-          funcao,
-          turno,
-          codigo,
-        };
-        const nextUsers = [...users, user];
-        localStorage.setItem(key, JSON.stringify(nextUsers));
-      }
-
-      localStorage.setItem("leiasj_logged_user", JSON.stringify(user));
       navigate("/bibliotecario");
       return;
     }
@@ -185,7 +203,6 @@ export default function Login() {
           serie: serieAluno,
           sala: salaAluno,
           funcao: "",
-          turno: "",
           codigo: "",
         };
         const nextUsers = [
@@ -237,15 +254,17 @@ export default function Login() {
           >
             Entrar
           </button>
-          <button
-            type="button"
-            className={`btn ${
-              modo === "cadastro" ? "ativo" : "btn-outline-warning"
-            }`}
-            onClick={() => setModo("cadastro")}
-          >
-            Cadastrar
-          </button>
+          {tipo !== "bibliotecario" && (
+            <button
+              type="button"
+              className={`btn ${
+                modo === "cadastro" ? "ativo" : "btn-outline-warning"
+              }`}
+              onClick={() => setModo("cadastro")}
+            >
+              Cadastrar
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -323,60 +342,30 @@ export default function Login() {
           )}
 
           {tipo === "funcionario" && (
-            <>
-              <select
-                className="form-select mb-3"
-                value={funcao}
-                onChange={(e) => setFuncao(e.target.value)}
-                required={modo === "cadastro"}
-              >
-                <option value="">Selecione a função</option>
-                {funcoes.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
-                ))}
-              </select>
-
-              <div className="d-flex justify-content-between mb-3">
-                {turnos.map((t) => (
-                  <button
-                    type="button"
-                    key={t}
-                    className={`btn btn-turno ${turno === t ? "ativo" : ""}`}
-                    onClick={() => setTurno(t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </>
+            <select
+              className="form-select mb-3"
+              value={funcao}
+              onChange={(e) => setFuncao(e.target.value)}
+              required={modo === "cadastro"}
+            >
+              <option value="">Selecione a função</option>
+              {funcoes.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
           )}
 
           {tipo === "bibliotecario" && (
-            <>
-              <div className="d-flex justify-content-between mb-3">
-                {turnos.map((t) => (
-                  <button
-                    type="button"
-                    key={t}
-                    className={`btn btn-turno ${turno === t ? "ativo" : ""}`}
-                    onClick={() => setTurno(t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-
-              <input
-                type="text"
-                placeholder="Código do bibliotecário"
-                className="form-control mb-3"
-                value={codigo}
-                onChange={(e) => setCodigo(e.target.value)}
-                required
-              />
-            </>
+            <input
+              type="text"
+              placeholder="Código do bibliotecário"
+              className="form-control mb-3"
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              required
+            />
           )}
 
           <input
