@@ -77,3 +77,21 @@ export async function loginStudent(nomeCompleto, senha) {
     body: { nomeCompleto, senha },
   });
 }
+
+export async function fetchStudents(busca = '') {
+  const query = busca ? `?busca=${encodeURIComponent(busca)}` : '';
+  return request(`/api/alunos${query}`);
+}
+
+export async function updateStudent(id, dados) {
+  return request(`/api/alunos/${id}`, {
+    method: 'PUT',
+    body: dados,
+  });
+}
+
+export async function deleteStudent(id) {
+  return request(`/api/alunos/${id}`, {
+    method: 'DELETE',
+  });
+}

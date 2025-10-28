@@ -32,6 +32,9 @@ import {
   updateBook as updateBookApi,
   deleteBook as deleteBookApi,
   logoutBibliotecario,
+  fetchStudents as fetchStudentsApi,
+  updateStudent as updateStudentApi,
+  deleteStudent as deleteStudentApi,
 } from "../../services/api";
 
 const K_BOOKS = "leiasj_books_v1";
@@ -97,6 +100,31 @@ export default function Bibliotecario() {
     }
   }, []);
 
+  const carregarUsuarios = useCallback(async () => {
+    try {
+      const dados = await fetchStudentsApi();
+      const alunos = (dados || []).map((aluno) => ({
+        id: aluno.id,
+        nome: aluno.nomeCompleto,
+        tipo: "aluno",
+        senha: aluno.senha || "",
+        serie: aluno.serie || "",
+        sala: aluno.sala || "",
+        funcao: "",
+        codigo: "",
+      }));
+
+      setUsers((prev) => {
+        const outros = prev.filter((u) => u.tipo !== "aluno");
+        const next = [...outros, ...alunos];
+        localStorage.setItem(K_USERS, JSON.stringify(next));
+        return next;
+      });
+    } catch (error) {
+      console.error("Erro ao carregar alunos do banco", error);
+    }
+  }, []);
+
   // ===== Helpers =====
   const todayISO = () => new Date().toISOString().slice(0, 10);
   const addDaysISO = (startISO, days) => {
@@ -123,7 +151,8 @@ export default function Bibliotecario() {
     setNotifs(JSON.parse(localStorage.getItem(K_NOTIFS)) || []);
 
     carregarLivros();
-  }, [carregarLivros]);
+    carregarUsuarios();
+  }, [carregarLivros, carregarUsuarios]);
 
   const sair = async () => {
     if (window.confirm("Deseja realmente sair?")) {
@@ -430,9 +459,22 @@ export default function Bibliotecario() {
     setNovaSenha("");
   };
 
-  const salvarSenha = (u) => {
+  const salvarSenha = async (u) => {
     if (!novaSenha || novaSenha.length < 4)
       return alert("A nova senha deve ter pelo menos 4 caracteres.");
+    if (u.tipo === "aluno") {
+      try {
+        await updateStudentApi(u.id, { senha: novaSenha });
+        await carregarUsuarios();
+        setEditingId(null);
+        setNovaSenha("");
+        alert(`Senha de "${u.nome}" atualizada!`);
+      } catch (error) {
+        alert(error.message || "Erro ao atualizar senha do aluno.");
+      }
+      return;
+    }
+
     const updated = users.map((usr) =>
       usr.id === u.id ? { ...usr, senha: novaSenha } : usr
     );
@@ -443,11 +485,23 @@ export default function Bibliotecario() {
     alert(`Senha de "${u.nome}" atualizada!`);
   };
 
-  const excluirUsuario = (u) => {
+  const excluirUsuario = async (u) => {
     if (!window.confirm(`Excluir o usuário "${u.nome}"?`)) return;
+    if (u.tipo === "aluno") {
+      try {
+        await deleteStudentApi(u.id);
+        await carregarUsuarios();
+        alert(`Usuário "${u.nome}" removido!`);
+      } catch (error) {
+        alert(error.message || "Erro ao excluir aluno.");
+      }
+      return;
+    }
+
     const updated = users.filter((x) => x.id !== u.id);
     setUsers(updated);
     localStorage.setItem(K_USERS, JSON.stringify(updated));
+    alert(`Usuário "${u.nome}" removido!`);
   };
 
   // Filtros usuários

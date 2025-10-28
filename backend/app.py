@@ -57,12 +57,13 @@ def row_to_livro(row):
     }
 
 
-def row_to_aluno(row):
+def row_to_aluno(row, include_password=False):
     return {
         'id': row['id'],
         'nomeCompleto': row['nome_completo'],
         'serie': row['serie'],
         'sala': row['sala'],
+        **({'senha': row['senha']} if include_password and 'senha' in row.keys() else {}),
     }
 
 
@@ -123,8 +124,41 @@ def login_bibliotecario():
     )
 
 
-@app.route('/api/alunos', methods=['POST'])
-def cadastrar_aluno():
+def _listar_alunos():
+    if 'bibliotecario_id' not in session:
+        return jsonify({'erro': 'Não autorizado'}), 403
+
+    busca = (request.args.get('busca') or '').strip().lower()
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    if busca:
+        like_term = f'%{busca}%'
+        cur.execute(
+            '''
+            SELECT id, nome_completo, serie, sala, senha
+            FROM alunos
+            WHERE lower(nome_completo) LIKE ?
+            ORDER BY nome_completo COLLATE NOCASE
+            ''',
+            (like_term,),
+        )
+    else:
+        cur.execute(
+            '''
+            SELECT id, nome_completo, serie, sala, senha
+            FROM alunos
+            ORDER BY nome_completo COLLATE NOCASE
+            '''
+        )
+
+    alunos = [row_to_aluno(row, include_password=True) for row in cur.fetchall()]
+    conn.close()
+    return jsonify(alunos)
+
+
+def _cadastrar_aluno():
     data = request.get_json() or {}
     nome = (data.get('nomeCompleto') or '').strip()
     serie = (data.get('serie') or '').strip()
@@ -178,6 +212,94 @@ def cadastrar_aluno():
         ),
         201,
     )
+
+
+@app.route('/api/alunos', methods=['GET', 'POST'])
+def gerenciar_alunos():
+    if request.method == 'POST':
+        return _cadastrar_aluno()
+    return _listar_alunos()
+
+
+@app.route('/api/alunos/<int:aluno_id>', methods=['PUT'])
+def atualizar_aluno(aluno_id):
+    if 'bibliotecario_id' not in session:
+        return jsonify({'erro': 'Não autorizado'}), 403
+
+    data = request.get_json() or {}
+    campos = {}
+
+    if 'nomeCompleto' in data:
+        nome = (data.get('nomeCompleto') or '').strip()
+        if not nome:
+            return jsonify({'erro': 'Nome completo é obrigatório.'}), 400
+        campos['nome_completo'] = nome
+
+    if 'serie' in data:
+        serie = (data.get('serie') or '').strip()
+        if not serie:
+            return jsonify({'erro': 'Série é obrigatória.'}), 400
+        campos['serie'] = serie
+
+    if 'sala' in data:
+        sala = (data.get('sala') or '').strip()
+        if not sala:
+            return jsonify({'erro': 'Sala é obrigatória.'}), 400
+        campos['sala'] = sala
+
+    if 'senha' in data:
+        senha = data.get('senha') or ''
+        if len(senha) < 4:
+            return jsonify({'erro': 'A senha deve ter pelo menos 4 caracteres.'}), 400
+        campos['senha'] = senha
+
+    if not campos:
+        return jsonify({'erro': 'Nenhum dado para atualizar.'}), 400
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute('SELECT id FROM alunos WHERE id = ?', (aluno_id,))
+    if cur.fetchone() is None:
+        conn.close()
+        return jsonify({'erro': 'Aluno não encontrado.'}), 404
+
+    updates = ', '.join(f"{col} = ?" for col in campos)
+    cur.execute(
+        f'UPDATE alunos SET {updates} WHERE id = ?',
+        (*campos.values(), aluno_id),
+    )
+    conn.commit()
+
+    cur.execute(
+        'SELECT id, nome_completo, serie, sala, senha FROM alunos WHERE id = ?',
+        (aluno_id,),
+    )
+    aluno = cur.fetchone()
+    conn.close()
+
+    if aluno is None:
+        return jsonify({'erro': 'Aluno não encontrado.'}), 404
+
+    return jsonify({'mensagem': 'Aluno atualizado com sucesso!', 'aluno': row_to_aluno(aluno, include_password=True)})
+
+
+@app.route('/api/alunos/<int:aluno_id>', methods=['DELETE'])
+def excluir_aluno(aluno_id):
+    if 'bibliotecario_id' not in session:
+        return jsonify({'erro': 'Não autorizado'}), 403
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM alunos WHERE id = ?', (aluno_id,))
+
+    if cur.rowcount == 0:
+        conn.close()
+        return jsonify({'erro': 'Aluno não encontrado.'}), 404
+
+    conn.commit()
+    conn.close()
+    return jsonify({'mensagem': 'Aluno removido com sucesso!'})
 
 
 @app.route('/api/alunos/login', methods=['POST'])
@@ -366,42 +488,6 @@ def atualizar_livro(livro_id):
 def excluir_livro(livro_id):
     if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
-
-    data = request.get_json() or {}
-    campos_validos = {
-        'titulo': lambda v: (v or '').strip(),
-        'autor': lambda v: (v or '').strip(),
-        'genero': lambda v: (v or '').strip(),
-        'capa': lambda v: (v or '').strip(),
-        'ano': lambda v: v,
-        'quantidade': lambda v: v,
-    }
-
-    updates = []
-    valores = []
-
-    for campo, normalizer in campos_validos.items():
-        if campo not in data:
-            continue
-        valor = normalizer(data.get(campo))
-        if campo == 'ano':
-            if valor in (None, ''):
-                valor = None
-            else:
-                try:
-                    valor = int(valor)
-                except (TypeError, ValueError):
-                    return jsonify({'erro': 'Ano inválido'}), 400
-        if campo == 'quantidade':
-            try:
-                valor = int(valor)
-            except (TypeError, ValueError):
-                return jsonify({'erro': 'Quantidade inválida'}), 400
-        updates.append(f"{campo} = ?")
-        valores.append(valor)
-
-    if not updates:
-        return jsonify({'erro': 'Nenhum dado para atualizar'}), 400
 
     conn = conectar()
     cur = conn.cursor()
