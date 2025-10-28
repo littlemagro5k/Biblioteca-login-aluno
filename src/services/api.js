@@ -95,3 +95,28 @@ export async function deleteStudent(id) {
     method: 'DELETE',
   });
 }
+
+export async function fetchLibrarians(busca = '') {
+  const query = busca ? `?busca=${encodeURIComponent(busca)}` : '';
+  return request(`/api/bibliotecarios${query}`);
+}
+
+export async function createLibrarian(dados) {
+  return request('/api/bibliotecarios', {
+    method: 'POST',
+    body: dados,
+  });
+}
+
+export async function updateLibrarian(id, dados) {
+  return request(`/api/bibliotecarios/${id}`, {
+    method: 'PUT',
+    body: dados,
+  });
+}
+
+export async function deleteLibrarian(id) {
+  return request(`/api/bibliotecarios/${id}`, {
+    method: 'DELETE',
+  });
+}

@@ -101,9 +101,18 @@ def criar_banco():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome_completo TEXT NOT NULL,
             codigo TEXT NOT NULL UNIQUE,
-            senha TEXT NOT NULL
+            senha TEXT NOT NULL,
+            turno TEXT
         )
         '''
+    )
+
+    ensure_columns(
+        cur,
+        'bibliotecarios',
+        [
+            ('turno', 'TEXT'),
+        ],
     )
 
     cur.execute(

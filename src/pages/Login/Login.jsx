@@ -252,7 +252,7 @@ export default function Login() {
             className={`btn ${modo === "login" ? "ativo" : "btn-outline-warning"}`}
             onClick={() => setModo("login")}
           >
-            Entrar
+            {tipo === "bibliotecario" ? "Login de bibliotecario" : "Entrar"}
           </button>
           {tipo !== "bibliotecario" && (
             <button

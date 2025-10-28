@@ -35,6 +35,10 @@ import {
   fetchStudents as fetchStudentsApi,
   updateStudent as updateStudentApi,
   deleteStudent as deleteStudentApi,
+  fetchLibrarians as fetchLibrariansApi,
+  createLibrarian as createLibrarianApi,
+  updateLibrarian as updateLibrarianApi,
+  deleteLibrarian as deleteLibrarianApi,
 } from "../../services/api";
 
 const K_BOOKS = "leiasj_books_v1";
@@ -79,6 +83,12 @@ export default function Bibliotecario() {
   const [novaSenha, setNovaSenha] = useState("");
   const [showPassMap, setShowPassMap] = useState({});
   const [buscaUsuario, setBuscaUsuario] = useState("");
+  const [novoBibliotecario, setNovoBibliotecario] = useState({
+    nome: "",
+    turno: "",
+    codigo: "",
+    senha: "",
+  });
 
   // Empréstimos
   const [emprestimos, setEmprestimos] = useState([]);
@@ -102,8 +112,12 @@ export default function Bibliotecario() {
 
   const carregarUsuarios = useCallback(async () => {
     try {
-      const dados = await fetchStudentsApi();
-      const alunos = (dados || []).map((aluno) => ({
+      const [dadosAlunos, dadosBibliotecarios] = await Promise.all([
+        fetchStudentsApi(),
+        fetchLibrariansApi(),
+      ]);
+
+      const alunos = (dadosAlunos || []).map((aluno) => ({
         id: aluno.id,
         nome: aluno.nomeCompleto,
         tipo: "aluno",
@@ -114,14 +128,28 @@ export default function Bibliotecario() {
         codigo: "",
       }));
 
+      const bibliotecarios = (dadosBibliotecarios || []).map((bibliotecario) => ({
+        id: bibliotecario.id,
+        nome: bibliotecario.nomeCompleto,
+        tipo: "bibliotecario",
+        senha: bibliotecario.senha || "",
+        serie: "",
+        sala: "",
+        funcao: "",
+        turno: bibliotecario.turno || "",
+        codigo: bibliotecario.codigo || "",
+      }));
+
       setUsers((prev) => {
-        const outros = prev.filter((u) => u.tipo !== "aluno");
-        const next = [...outros, ...alunos];
+        const outros = prev.filter(
+          (u) => !["aluno", "bibliotecario"].includes(u.tipo)
+        );
+        const next = [...outros, ...bibliotecarios, ...alunos];
         localStorage.setItem(K_USERS, JSON.stringify(next));
         return next;
       });
     } catch (error) {
-      console.error("Erro ao carregar alunos do banco", error);
+      console.error("Erro ao carregar usuários do banco", error);
     }
   }, []);
 
@@ -451,6 +479,87 @@ export default function Bibliotecario() {
   };
 
   // ===== Usuários =====
+<<<<<<< ours
+  const adicionarBibliotecario = (event) => {
+=======
+  const adicionarBibliotecario = async (event) => {
+>>>>>>> theirs
+    event.preventDefault();
+    const nome = novoBibliotecario.nome.trim();
+    const turno = novoBibliotecario.turno.trim();
+    const codigo = novoBibliotecario.codigo.trim();
+    const senha = novoBibliotecario.senha.trim();
+
+    if (!nome || !codigo || !senha) {
+      alert("Informe nome, código e senha do bibliotecário.");
+      return;
+    }
+    if (senha.length < 4) {
+      alert("A senha deve ter pelo menos 4 caracteres.");
+      return;
+    }
+
+    const codigoExistente = users.some(
+      (u) =>
+        u.tipo === "bibliotecario" &&
+        (u.codigo || "").toLowerCase() === codigo.toLowerCase()
+    );
+
+    if (codigoExistente) {
+      alert("Já existe um bibliotecário cadastrado com esse código.");
+      return;
+    }
+
+<<<<<<< ours
+    const novo = {
+      id: Date.now(),
+      nome,
+      tipo: "bibliotecario",
+      senha,
+      turno,
+      serie: "",
+      sala: "",
+      funcao: "",
+      codigo,
+    };
+
+    const nextUsers = [...users, novo];
+    setUsers(nextUsers);
+    localStorage.setItem(K_USERS, JSON.stringify(nextUsers));
+    setNovoBibliotecario({ nome: "", turno: "", codigo: "", senha: "" });
+    pushNotif({
+      type: "info",
+      text: 'Bibliotecário "' + nome + '" cadastrado.',
+      refId: novo.id,
+    });
+    alert('Bibliotecário "' + nome + '" cadastrado!');
+=======
+    try {
+      const resposta = await createLibrarianApi({
+        nomeCompleto: nome,
+        codigo,
+        senha,
+        turno,
+      });
+      await carregarUsuarios();
+      setNovoBibliotecario({ nome: "", turno: "", codigo: "", senha: "" });
+
+      const cadastrado = resposta?.bibliotecario || null;
+      const nomeCadastrado = cadastrado?.nomeCompleto || nome;
+      const idCadastrado = cadastrado?.id || Date.now();
+
+      pushNotif({
+        type: "info",
+        text: `Bibliotecário "${nomeCadastrado}" cadastrado.`,
+        refId: idCadastrado,
+      });
+      alert(resposta?.mensagem || `Bibliotecário "${nomeCadastrado}" cadastrado!`);
+    } catch (error) {
+      alert(error.message || "Erro ao cadastrar bibliotecário.");
+    }
+>>>>>>> theirs
+  };
+
   const toggleShowPass = (id) =>
     setShowPassMap((m) => ({ ...m, [id]: !m[id] }));
 
@@ -475,6 +584,21 @@ export default function Bibliotecario() {
       return;
     }
 
+    if (u.tipo === "bibliotecario") {
+      try {
+        await updateLibrarianApi(u.id, { senha: novaSenha });
+        await carregarUsuarios();
+        setEditingId(null);
+        setNovaSenha("");
+        alert(`Senha de "${u.nome}" atualizada!`);
+      } catch (error) {
+        alert(
+          error.message || "Erro ao atualizar senha do bibliotecário."
+        );
+      }
+      return;
+    }
+
     const updated = users.map((usr) =>
       usr.id === u.id ? { ...usr, senha: novaSenha } : usr
     );
@@ -494,6 +618,17 @@ export default function Bibliotecario() {
         alert(`Usuário "${u.nome}" removido!`);
       } catch (error) {
         alert(error.message || "Erro ao excluir aluno.");
+      }
+      return;
+    }
+
+    if (u.tipo === "bibliotecario") {
+      try {
+        await deleteLibrarianApi(u.id);
+        await carregarUsuarios();
+        alert(`Usuário "${u.nome}" removido!`);
+      } catch (error) {
+        alert(error.message || "Erro ao excluir bibliotecário.");
       }
       return;
     }
@@ -879,6 +1014,68 @@ export default function Bibliotecario() {
         >
           <div className="tab-body">
             <div className="card">
+              <h4>
+                <PlusCircle size={16} /> Adicionar bibliotecário
+              </h4>
+              <form
+                onSubmit={adicionarBibliotecario}
+                className="form-grid two-cols"
+              >
+                <input
+                  className="full-span"
+                  type="text"
+                  placeholder="Nome completo"
+                  value={novoBibliotecario.nome}
+                  onChange={(e) =>
+                    setNovoBibliotecario((prev) => ({
+                      ...prev,
+                      nome: e.target.value,
+                    }))
+                  }
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Turno (opcional)"
+                  value={novoBibliotecario.turno}
+                  onChange={(e) =>
+                    setNovoBibliotecario((prev) => ({
+                      ...prev,
+                      turno: e.target.value,
+                    }))
+                  }
+                />
+                <input
+                  type="text"
+                  placeholder="Código de acesso"
+                  value={novoBibliotecario.codigo}
+                  onChange={(e) =>
+                    setNovoBibliotecario((prev) => ({
+                      ...prev,
+                      codigo: e.target.value,
+                    }))
+                  }
+                  required
+                />
+                <input
+                  type="password"
+                  placeholder="Senha"
+                  value={novoBibliotecario.senha}
+                  onChange={(e) =>
+                    setNovoBibliotecario((prev) => ({
+                      ...prev,
+                      senha: e.target.value,
+                    }))
+                  }
+                  required
+                />
+                <button type="submit" className="btn-azul full-span">
+                  Cadastrar
+                </button>
+              </form>
+            </div>
+
+            <div className="card">
               <h4>Pesquisar usuários</h4>
               <input
                 className="input-full"
@@ -959,11 +1156,12 @@ export default function Bibliotecario() {
             {/* Bibliotecários */}
             <UserTable
               titulo="Bibliotecários"
-              columns={["Nome", "Turno", "Senha", "Ações"]}
+              columns={["Nome", "Turno", "Código", "Senha", "Ações"]}
               renderRow={(u) => (
                 <>
                   <td>{u.nome}</td>
                   <td>{u.turno || "-"}</td>
+                  <td>{u.codigo || "-"}</td>
                   <SenhaCell
                     u={u}
                     showPassMap={showPassMap}

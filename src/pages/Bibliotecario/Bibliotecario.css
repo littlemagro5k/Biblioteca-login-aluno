@@ -169,6 +169,28 @@
   gap: 6px;
 }
 
+.form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.form-grid.two-cols {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.form-grid .full-span {
+  grid-column: 1 / -1;
+}
+
+.form-grid button {
+  justify-self: start;
+  align-self: end;
+}
+
+.form-grid button.full-span {
+  width: 100%;
+}
+
 /* Inputs brancos */
 .card input,
 .input-full {

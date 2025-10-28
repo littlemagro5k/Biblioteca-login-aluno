@@ -67,6 +67,18 @@ def row_to_aluno(row, include_password=False):
     }
 
 
+def row_to_bibliotecario(row, include_password=False):
+    payload = {
+        'id': row['id'],
+        'nomeCompleto': row['nome_completo'],
+        'codigo': row['codigo'],
+        'turno': (row['turno'] if 'turno' in row.keys() else None) or '',
+    }
+    if include_password and 'senha' in row.keys():
+        payload['senha'] = row['senha']
+    return payload
+
+
 @app.route('/')
 def index():
     if app.static_folder:
@@ -329,6 +341,201 @@ def login_aluno():
         return jsonify({'erro': 'Aluno não encontrado ou senha incorreta.'}), 401
 
     return jsonify(row_to_aluno(aluno))
+
+
+def _listar_bibliotecarios():
+    if 'bibliotecario_id' not in session:
+        return jsonify({'erro': 'Não autorizado'}), 403
+
+    busca = (request.args.get('busca') or '').strip().lower()
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    if busca:
+        like_term = f'%{busca}%'
+        cur.execute(
+            '''
+            SELECT id, nome_completo, codigo, turno, senha
+            FROM bibliotecarios
+            WHERE lower(nome_completo) LIKE ? OR lower(codigo) LIKE ?
+            ORDER BY nome_completo COLLATE NOCASE
+            ''',
+            (like_term, like_term),
+        )
+    else:
+        cur.execute(
+            '''
+            SELECT id, nome_completo, codigo, turno, senha
+            FROM bibliotecarios
+            ORDER BY nome_completo COLLATE NOCASE
+            '''
+        )
+
+    bibliotecarios = [
+        row_to_bibliotecario(row, include_password=True) for row in cur.fetchall()
+    ]
+    conn.close()
+    return jsonify(bibliotecarios)
+
+
+def _cadastrar_bibliotecario():
+    if 'bibliotecario_id' not in session:
+        return jsonify({'erro': 'Não autorizado'}), 403
+
+    data = request.get_json() or {}
+    nome = (data.get('nomeCompleto') or '').strip()
+    codigo = (data.get('codigo') or '').strip()
+    senha = (data.get('senha') or '').strip()
+    turno = (data.get('turno') or '').strip() or None
+
+    if not nome or not codigo or not senha:
+        return jsonify({'erro': 'Nome completo, código e senha são obrigatórios.'}), 400
+    if len(senha) < 4:
+        return jsonify({'erro': 'A senha deve ter pelo menos 4 caracteres.'}), 400
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute(
+        'SELECT id FROM bibliotecarios WHERE codigo = ?',
+        (codigo,),
+    )
+    if cur.fetchone():
+        conn.close()
+        return jsonify({'erro': 'Já existe um bibliotecário cadastrado com esse código.'}), 409
+
+    cur.execute(
+        '''
+        INSERT INTO bibliotecarios (nome_completo, codigo, senha, turno)
+        VALUES (?, ?, ?, ?)
+        ''',
+        (nome, codigo, senha, turno),
+    )
+    bibliotecario_id = cur.lastrowid
+    conn.commit()
+
+    cur.execute(
+        'SELECT id, nome_completo, codigo, turno, senha FROM bibliotecarios WHERE id = ?',
+        (bibliotecario_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+
+    return (
+        jsonify(
+            {
+                'mensagem': 'Bibliotecário cadastrado com sucesso!',
+                'bibliotecario': row_to_bibliotecario(row, include_password=True),
+            }
+        ),
+        201,
+    )
+
+
+def _atualizar_bibliotecario(bibliotecario_id):
+    if 'bibliotecario_id' not in session:
+        return jsonify({'erro': 'Não autorizado'}), 403
+
+    data = request.get_json() or {}
+    campos = {}
+
+    if 'nomeCompleto' in data:
+        nome = (data.get('nomeCompleto') or '').strip()
+        if not nome:
+            return jsonify({'erro': 'Nome completo é obrigatório.'}), 400
+        campos['nome_completo'] = nome
+
+    if 'codigo' in data:
+        codigo = (data.get('codigo') or '').strip()
+        if not codigo:
+            return jsonify({'erro': 'Código é obrigatório.'}), 400
+        campos['codigo'] = codigo
+
+    if 'senha' in data:
+        senha = (data.get('senha') or '').strip()
+        if len(senha) < 4:
+            return jsonify({'erro': 'A senha deve ter pelo menos 4 caracteres.'}), 400
+        campos['senha'] = senha
+
+    if 'turno' in data:
+        turno = (data.get('turno') or '').strip()
+        campos['turno'] = turno or None
+
+    if not campos:
+        return jsonify({'erro': 'Nenhum dado para atualizar.'}), 400
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute('SELECT id FROM bibliotecarios WHERE id = ?', (bibliotecario_id,))
+    if cur.fetchone() is None:
+        conn.close()
+        return jsonify({'erro': 'Bibliotecário não encontrado.'}), 404
+
+    if 'codigo' in campos:
+        cur.execute(
+            'SELECT id FROM bibliotecarios WHERE codigo = ? AND id != ?',
+            (campos['codigo'], bibliotecario_id),
+        )
+        if cur.fetchone() is not None:
+            conn.close()
+            return jsonify({'erro': 'Já existe um bibliotecário cadastrado com esse código.'}), 409
+
+    updates = ', '.join(f"{col} = ?" for col in campos)
+    cur.execute(
+        f'UPDATE bibliotecarios SET {updates} WHERE id = ?',
+        (*campos.values(), bibliotecario_id),
+    )
+    conn.commit()
+
+    cur.execute(
+        'SELECT id, nome_completo, codigo, turno, senha FROM bibliotecarios WHERE id = ?',
+        (bibliotecario_id,),
+    )
+    row = cur.fetchone()
+    conn.close()
+
+    if row is None:
+        return jsonify({'erro': 'Bibliotecário não encontrado.'}), 404
+
+    return jsonify(
+        {
+            'mensagem': 'Bibliotecário atualizado com sucesso!',
+            'bibliotecario': row_to_bibliotecario(row, include_password=True),
+        }
+    )
+
+
+def _excluir_bibliotecario(bibliotecario_id):
+    if 'bibliotecario_id' not in session:
+        return jsonify({'erro': 'Não autorizado'}), 403
+
+    conn = conectar()
+    cur = conn.cursor()
+    cur.execute('DELETE FROM bibliotecarios WHERE id = ?', (bibliotecario_id,))
+
+    if cur.rowcount == 0:
+        conn.close()
+        return jsonify({'erro': 'Bibliotecário não encontrado.'}), 404
+
+    conn.commit()
+    conn.close()
+    return jsonify({'mensagem': 'Bibliotecário removido com sucesso!'})
+
+
+@app.route('/api/bibliotecarios', methods=['GET', 'POST'])
+def gerenciar_bibliotecarios():
+    if request.method == 'POST':
+        return _cadastrar_bibliotecario()
+    return _listar_bibliotecarios()
+
+
+@app.route('/api/bibliotecarios/<int:bibliotecario_id>', methods=['PUT', 'DELETE'])
+def modificar_bibliotecario(bibliotecario_id):
+    if request.method == 'PUT':
+        return _atualizar_bibliotecario(bibliotecario_id)
+    return _excluir_bibliotecario(bibliotecario_id)
 
 
 @app.route('/logout', methods=['POST'])
