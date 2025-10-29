@@ -479,11 +479,7 @@ export default function Bibliotecario() {
   };
 
   // ===== Usuários =====
-<<<<<<< ours
-  const adicionarBibliotecario = (event) => {
-=======
   const adicionarBibliotecario = async (event) => {
->>>>>>> theirs
     event.preventDefault();
     const nome = novoBibliotecario.nome.trim();
     const turno = novoBibliotecario.turno.trim();
@@ -510,30 +506,6 @@ export default function Bibliotecario() {
       return;
     }
 
-<<<<<<< ours
-    const novo = {
-      id: Date.now(),
-      nome,
-      tipo: "bibliotecario",
-      senha,
-      turno,
-      serie: "",
-      sala: "",
-      funcao: "",
-      codigo,
-    };
-
-    const nextUsers = [...users, novo];
-    setUsers(nextUsers);
-    localStorage.setItem(K_USERS, JSON.stringify(nextUsers));
-    setNovoBibliotecario({ nome: "", turno: "", codigo: "", senha: "" });
-    pushNotif({
-      type: "info",
-      text: 'Bibliotecário "' + nome + '" cadastrado.',
-      refId: novo.id,
-    });
-    alert('Bibliotecário "' + nome + '" cadastrado!');
-=======
     try {
       const resposta = await createLibrarianApi({
         nomeCompleto: nome,
@@ -557,7 +529,6 @@ export default function Bibliotecario() {
     } catch (error) {
       alert(error.message || "Erro ao cadastrar bibliotecário.");
     }
->>>>>>> theirs
   };
 
   const toggleShowPass = (id) =>
