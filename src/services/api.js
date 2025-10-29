@@ -22,6 +22,17 @@ function resolvePath(path) {
   return `${API_BASE}${normalizedPath}`;
 }
 
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
+function resolvePath(path) {
+  if (!API_BASE) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE}${normalizedPath}`;
+}
+
 async function request(path, { method = 'GET', body, headers = {} } = {}) {
   const options = {
     method,

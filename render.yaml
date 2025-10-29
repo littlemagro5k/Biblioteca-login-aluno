@@ -3,7 +3,11 @@ services:
     name: biblioteca-backend
     env: python
     plan: free
+<<<<<<< ours
     buildCommand: pip install -r requirements.txt
+=======
+    buildCommand: pip install --root-user-action=ignore -r requirements.txt
+>>>>>>> theirs
     startCommand: gunicorn backend.app:app
     envVars:
       - key: FLASK_SECRET_KEY

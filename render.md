@@ -8,30 +8,53 @@ Este guia detalha como publicar o backend Flask deste projeto no Render utilizan
 
 ## 2. Criar um serviço Web no Render
 1. Acesse o painel do [Render](https://render.com) com a sua conta.
+<<<<<<< ours
 2. Clique em **New + → Web Service** e conecte o repositório que contém o projeto.
 3. Quando o Render detectar o projeto, ele sugerirá automaticamente o runtime **Python** por conta do `requirements.txt`.
 
 ## 3. Comandos de build e execução
 - **Build Command:** `pip install -r requirements.txt`
 - **Start Command:** `gunicorn backend.app:app`
+=======
+2. Clique em **New + → Web Service** (Novo → Serviço Web) e conecte o repositório que contém o projeto.
+3. Quando o Render detectar o projeto, ele sugerirá automaticamente o ambiente de execução **Python** por conta do `requirements.txt`.
+
+## 3. Comandos de build e execução
+- **Comando de build:** `pip install --root-user-action=ignore -r requirements.txt`
+- **Comando de inicialização:** `gunicorn backend.app:app`
+>>>>>>> theirs
 
 Esses comandos já estão descritos no `render.yaml` e são suficientes para instalar as dependências e iniciar o servidor WSGI.
 
 ## 4. Deploy do backend no Render
 1. Faça o push do repositório para o GitHub (ou outro provedor) contendo este projeto.
+<<<<<<< ours
 2. Com a conta criada no Render, clique em **New + → Web Service** e conecte o repositório.
 3. Quando o Render detectar o projeto, confirme as opções:
    - **Runtime**: Python (detectado automaticamente por causa do `requirements.txt`).
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `gunicorn backend.app:app`
 4. Em **Environment Variables**, configure:
+=======
+2. Com a conta criada no Render, clique em **New + → Web Service** (Novo → Serviço Web) e conecte o repositório.
+3. Quando o Render detectar o projeto, confirme as opções:
+   - **Ambiente de execução (Runtime)**: Python (detectado automaticamente por causa do `requirements.txt`).
+   - **Comando de build**: `pip install --root-user-action=ignore -r requirements.txt`
+   - **Comando de inicialização**: `gunicorn backend.app:app`
+4. Em **Environment Variables** (Variáveis de ambiente), configure:
+>>>>>>> theirs
    - `FLASK_SECRET_KEY`: gere pelo botão *Generate* ou informe um valor forte.
    - `DATABASE_PATH`: defina como `/var/data/biblioteca.db` para usar o disco persistente.
    - `FRONTEND_ORIGIN`: liste os domínios que podem chamar a API (ex.: `https://seu-site.vercel.app,http://localhost:5173`).
    - `ENABLE_CROSS_SITE_COOKIES`: coloque `true` para liberar a sessão entre Render e Vercel.
    - `SESSION_COOKIE_SECURE`: mantenha `true` em produção (obrigatório quando o item anterior está ativo).
    > Ajuste `https://seu-site.vercel.app` para o domínio real fornecido pela Vercel e adicione outras origens necessárias separadas por vírgula.
+<<<<<<< ours
 5. Adicione um **Persistent Disk** com pelo menos 1 GB, montado em `/var/data`, para que o arquivo SQLite não seja perdido a cada deploy. O arquivo `render.yaml` incluso no repositório já descreve essa configuração; basta importá-lo na tela de criação ou mantê-lo no repositório para deploys automatizados.
+=======
+   > O parâmetro `--root-user-action=ignore` suprime o aviso “Running pip as the 'root' user…” que surge porque os builds do Render são executados como root.
+5. Adicione um **Persistent Disk** (Disco Persistente) com pelo menos 1 GB, montado em `/var/data`, para que o arquivo SQLite não seja perdido a cada deploy. O arquivo `render.yaml` incluso no repositório já descreve essa configuração; basta importá-lo na tela de criação ou mantê-lo no repositório para deploys automatizados.
+>>>>>>> theirs
 6. Salve e aguarde o Render instalar as dependências, preparar o banco (os dados iniciais são criados automaticamente) e iniciar a API. Ao final, copie a URL pública gerada (por exemplo, `https://biblioteca-backend.onrender.com`).
    > Assim que o domínio da Vercel estiver disponível, acrescente-o na variável `FRONTEND_ORIGIN` e faça o redeploy do backend para liberar as chamadas do frontend hospedado.
 
