@@ -2,6 +2,11 @@ import importlib.util
 import os
 import sqlite3
 from pathlib import Path
+<<<<<<< ours
+=======
+
+from flask_cors import CORS
+>>>>>>> theirs
 
 
 def _ensure_flask_installed() -> None:
@@ -27,7 +32,53 @@ except ImportError:  # pragma: no cover - fallback quando executado diretamente
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'chave_super_secreta')
+<<<<<<< ours
 
+=======
+
+
+def _truthy(value, default=False):
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'on', 'yes'}
+
+
+def _parse_origins(raw_value):
+    if not raw_value:
+        return []
+    return [origin.strip().rstrip('/') for origin in raw_value.split(',') if origin.strip()]
+
+
+default_origins = ['http://localhost:5173']
+configured_origins = _parse_origins(os.environ.get('FRONTEND_ORIGIN'))
+frontend_origins = configured_origins or default_origins
+
+CORS(
+    app,
+    origins=frontend_origins,
+    supports_credentials=True,
+    allow_headers=['Content-Type'],
+)
+
+enable_cross_site_cookies = _truthy(
+    os.environ.get('ENABLE_CROSS_SITE_COOKIES'),
+    default=any(origin.startswith('https://') for origin in frontend_origins),
+)
+
+if enable_cross_site_cookies:
+    app.config['SESSION_COOKIE_SAMESITE'] = os.environ.get(
+        'SESSION_COOKIE_SAMESITE',
+        'None',
+    )
+    app.config['SESSION_COOKIE_SECURE'] = _truthy(
+        os.environ.get('SESSION_COOKIE_SECURE'),
+        default=True,
+    )
+else:
+    app.config.setdefault('SESSION_COOKIE_SAMESITE', 'Lax')
+    app.config.setdefault('SESSION_COOKIE_SECURE', False)
+
+>>>>>>> theirs
 DB = os.environ.get('DATABASE_PATH', 'biblioteca.db')
 if Path(DB).parent != Path('.'):
     Path(DB).parent.mkdir(parents=True, exist_ok=True)
