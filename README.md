@@ -51,9 +51,6 @@ Este projeto reúne o backend em Flask/SQLite e o frontend em React (Vite) para 
    - **Runtime**: Python (detectado automaticamente por causa do `requirements.txt`).
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `gunicorn backend.app:app`
-<<<<<<< ours
-4. Em **Environment Variables**, garanta que exista uma variável `FLASK_SECRET_KEY`. Você pode usar o botão *Generate* ou definir um valor próprio. Caso deseje armazenar o banco em um volume persistente, crie também a variável `DATABASE_PATH` apontando para `/var/data/biblioteca.db`.
-=======
 4. Em **Environment Variables**, defina:
    - `FLASK_SECRET_KEY`: gere pelo botão *Generate* ou informe um valor próprio.
    - `DATABASE_PATH`: use `/var/data/biblioteca.db` para persistir o SQLite no disco.
@@ -61,7 +58,6 @@ Este projeto reúne o backend em Flask/SQLite e o frontend em React (Vite) para 
    - `ENABLE_CROSS_SITE_COOKIES`: defina como `true` para permitir que a sessão Flask funcione entre domínios diferentes (Render ↔ Vercel).
    - `SESSION_COOKIE_SECURE`: mantenha `true` em produção (obrigatório quando `ENABLE_CROSS_SITE_COOKIES` estiver ativo).
    > Substitua `https://seu-site.vercel.app` pelo domínio real exibido após o deploy na Vercel. Inclua outras origens (como ambientes de homologação) separadas por vírgula se necessário.
->>>>>>> theirs
 5. Adicione um **Persistent Disk** com pelo menos 1 GB, montado em `/var/data`, para que o arquivo SQLite não seja perdido a cada deploy. O arquivo `render.yaml` incluso no repositório já descreve essa configuração; basta importá-lo na tela de criação ou mantê-lo no repositório para deploys automatizados.
 6. Salve e aguarde o Render instalar as dependências, preparar o banco (os dados iniciais são criados automaticamente) e iniciar a API. Ao final, copie a URL pública gerada (por exemplo, `https://biblioteca-backend.onrender.com`).
 

@@ -2,11 +2,8 @@ import importlib.util
 import os
 import sqlite3
 from pathlib import Path
-<<<<<<< ours
-=======
 
 from flask_cors import CORS
->>>>>>> theirs
 
 
 def _ensure_flask_installed() -> None:
@@ -32,9 +29,6 @@ except ImportError:  # pragma: no cover - fallback quando executado diretamente
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'chave_super_secreta')
-<<<<<<< ours
-
-=======
 
 
 def _truthy(value, default=False):
@@ -78,7 +72,6 @@ else:
     app.config.setdefault('SESSION_COOKIE_SAMESITE', 'Lax')
     app.config.setdefault('SESSION_COOKIE_SECURE', False)
 
->>>>>>> theirs
 DB = os.environ.get('DATABASE_PATH', 'biblioteca.db')
 if Path(DB).parent != Path('.'):
     Path(DB).parent.mkdir(parents=True, exist_ok=True)
