@@ -4,7 +4,6 @@ import sqlite3
 from pathlib import Path
 
 
-
 def _ensure_flask_installed() -> None:
     """Garante que o Flask esteja disponível antes de iniciar a aplicação."""
 
@@ -27,8 +26,6 @@ except ImportError:  # pragma: no cover - fallback quando executado diretamente
     from init_db import criar_banco
 
 app = Flask(__name__, static_folder='static', static_url_path='')
-CORS(app, resources={r"/*": {"origins": "*"}})
-
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'chave_super_secreta')
 
 DB = os.environ.get('DATABASE_PATH', 'biblioteca.db')

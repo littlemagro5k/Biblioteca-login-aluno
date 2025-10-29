@@ -58,8 +58,11 @@ Este projeto reúne o backend em Flask/SQLite e o frontend em React (Vite) para 
 > Sempre que fizer alterações no backend, um novo deploy será disparado automaticamente. Como o banco está em um disco persistente, os dados inseridos via painel são mantidos entre deploys.
 
 <<<<<<< ours
+<<<<<<< ours
 ## 5. Abrir no Google Chrome
 =======
+=======
+>>>>>>> theirs
 ## 5. Deploy do frontend na Vercel
 1. Acesse o painel da [Vercel](https://vercel.com), clique em **Add New… → Project** e conecte o mesmo repositório.
 2. Na etapa **Configure Project**, mantenha o preset **Vite**. **Deixe o campo _Root Directory_ em branco** (ou `.`): como o `package.json` e o código do frontend estão na raiz do repositório, indicar outro caminho — como `render.yaml` ou o próprio nome do repositório — provoca o erro “Root directory must be a subdirectory of the repository”. Caso você já tenha importado o projeto antes com um valor incorreto, abra **Settings → Git** (no painel do projeto) e confirme que o campo **Root Directory** está vazio ou contém apenas `.`; se houver qualquer outro caminho, clique em **Edit** e limpe o valor antes de salvar.
@@ -71,6 +74,9 @@ Este projeto reúne o backend em Flask/SQLite e o frontend em React (Vite) para 
 5. Salve e aguarde o deploy. Ao final, a Vercel exibirá o domínio `https://…vercel.app`. Teste o site publicado e confirme que as chamadas à API funcionam normalmente.
 
 ## 6. Abrir no Google Chrome
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 - **Modo desenvolvimento:** `http://localhost:5173`
 - **Build de produção (preview):** `http://localhost:4173`

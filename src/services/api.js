@@ -1,14 +1,16 @@
 const JSON_CONTENT = "application/json";
 
-// === Base do backend hospedado no Render ===
-const API_BASE = (
-  import.meta.env.VITE_API_URL || "https://biblioteca-login-aluno-2.onrender.com/api"
-).replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 
 function resolvePath(path) {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  if (!API_BASE) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE}${normalizedPath}`;
 }
+
 async function request(path, { method = 'GET', body, headers = {} } = {}) {
   const options = {
     method,
