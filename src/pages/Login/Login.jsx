@@ -1,3 +1,5 @@
+// Tela de autenticação e cadastro de usuários.
+// Permite que alunos façam login/cadastro e que bibliotecários realizem login.
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -9,8 +11,12 @@ import {
 } from "../../services/api";
 
 export default function Login() {
+  // ===== Estados principais =====
+  // "modo" alterna entre formulário de login e cadastro.
   const [modo, setModo] = useState("login");
+  // "tipo" determina o perfil atual (aluno, funcionário ou bibliotecário).
   const [tipo, setTipo] = useState("aluno");
+  // Campos genéricos utilizados pelos diferentes tipos de usuário.
   const [nome, setNome] = useState("");
   const [serie, setSerie] = useState("");
   const [sala, setSala] = useState("");
@@ -19,6 +25,7 @@ export default function Login() {
   const [codigo, setCodigo] = useState("");
   const navigate = useNavigate();
 
+  // Listas usadas para preencher selects de série, sala e função.
   const funcoes = [
     "Professor",
     "Diretoria",
@@ -29,6 +36,7 @@ export default function Login() {
   const series = ["6º", "7º", "8º", "9º", "1º", "2º", "3º", "EJA"];
   const salas = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
+  // Sempre que o tipo de usuário mudar ajustamos os campos que não se aplicam.
   useEffect(() => {
     if (tipo !== "aluno") {
       setSerie("");
@@ -40,10 +48,12 @@ export default function Login() {
     if (tipo !== "bibliotecario") {
       setCodigo("");
     } else {
+      // Bibliotecário sempre utiliza o modo login, nunca cadastro.
       setModo("login");
     }
   }, [tipo]);
 
+  // Validação simples do nome completo para evitar cadastros com nomes vazios.
   function validarNomeCompleto(nomeAtual, tipoAtual = tipo) {
     if (tipoAtual === "bibliotecario") {
       return nomeAtual.trim().length > 0;
@@ -51,6 +61,7 @@ export default function Login() {
     return nomeAtual.trim().split(" ").length >= 2;
   }
 
+  // Função disparada ao enviar o formulário de login/cadastro.
   async function handleSubmit(e) {
     e.preventDefault();
     if (!validarNomeCompleto(nome, tipo))
@@ -62,6 +73,7 @@ export default function Login() {
     const nomeLower = nomeFormatado.toLowerCase();
     const codigoFormatado = codigo.trim();
 
+    // LocalStorage mantém uma cópia simples dos usuários para acesso rápido.
     const key = "leiasj_users_v1";
     const users = JSON.parse(localStorage.getItem(key)) || [];
 
@@ -75,6 +87,7 @@ export default function Login() {
           return alert("Selecione a série e a sala do aluno.");
 
         try {
+          // Cadastro é enviado ao backend para que o aluno fique salvo no banco.
           const cadastro = await registerStudent({
             nomeCompleto: nomeFormatado,
             serie,

@@ -1,9 +1,13 @@
+"""Rotinas utilitárias para criação e atualização do banco SQLite."""
+
 import sqlite3
 
 DB_PATH = 'biblioteca.db'
 
 
 def ensure_columns(cursor, table, columns):
+    """Garante que novas colunas existam sem perder dados antigos."""
+
     existing = {row[1] for row in cursor.execute(f"PRAGMA table_info({table})")}
     for column, definition in columns:
         if column not in existing:
@@ -11,9 +15,12 @@ def ensure_columns(cursor, table, columns):
 
 
 def criar_banco():
+    """Cria tabelas principais e insere registros iniciais."""
+
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
+    # === Tabela de livros ===
     cur.execute(
         '''
         CREATE TABLE IF NOT EXISTS livros (
@@ -39,6 +46,7 @@ def criar_banco():
         ],
     )
 
+    # === Tabela de alunos ===
     cur.execute(
         '''
         CREATE TABLE IF NOT EXISTS alunos (
@@ -64,6 +72,7 @@ def criar_banco():
 
     conn.commit()
 
+    # Caso seja a primeira execução, adicionamos uma lista inicial de livros.
     cur.execute('SELECT COUNT(*) FROM livros')
     if cur.fetchone()[0] == 0:
         livros = [
@@ -93,8 +102,10 @@ def criar_banco():
             livros,
         )
 
+    # A antiga tabela `usuarios` não é mais necessária.
     cur.execute('DROP TABLE IF EXISTS usuarios')
 
+    # === Tabela de bibliotecários ===
     cur.execute(
         '''
         CREATE TABLE IF NOT EXISTS bibliotecarios (
@@ -115,6 +126,7 @@ def criar_banco():
         ],
     )
 
+    # Garante que exista ao menos um usuário administrador padrão.
     cur.execute(
         '''
         SELECT id

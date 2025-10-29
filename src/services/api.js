@@ -1,3 +1,5 @@
+// Camada de comunicação com o backend (API Flask).
+// Centralizamos aqui todas as requisições HTTP para manter o código organizado.
 const JSON_CONTENT = 'application/json';
 
 async function request(path, { method = 'GET', body, headers = {} } = {}) {
@@ -28,6 +30,7 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
   return payload;
 }
 
+// --- Bibliotecários ---
 export async function loginBibliotecario(nomeCompleto, codigo, senha) {
   return request('/api/bibliotecario/login', {
     method: 'POST',
@@ -39,6 +42,7 @@ export async function logoutBibliotecario() {
   return request('/logout', { method: 'POST' });
 }
 
+// --- Livros ---
 export async function fetchBooks(busca = '') {
   const query = busca ? `?busca=${encodeURIComponent(busca)}` : '';
   return request(`/api/livros${query}`);
@@ -64,6 +68,7 @@ export async function deleteBook(id) {
   });
 }
 
+// --- Alunos ---
 export async function registerStudent({ nomeCompleto, serie, sala, senha }) {
   return request('/api/alunos', {
     method: 'POST',
@@ -96,6 +101,7 @@ export async function deleteStudent(id) {
   });
 }
 
+// --- Bibliotecários (CRUD completo) ---
 export async function fetchLibrarians(busca = '') {
   const query = busca ? `?busca=${encodeURIComponent(busca)}` : '';
   return request(`/api/bibliotecarios${query}`);
