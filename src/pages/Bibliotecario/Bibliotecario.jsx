@@ -1,3 +1,4 @@
+// Hooks do React utilizados para gerenciar estado, efeitos e memorização.
 import React, {
   useEffect,
   useMemo,
@@ -5,8 +6,11 @@ import React, {
   useState,
   useCallback,
 } from "react";
+// Componentes visuais do React-Bootstrap responsáveis por montar as abas.
 import { Tabs, Tab } from "react-bootstrap";
+// Controle de navegação para redirecionar o bibliotecário após o logout.
 import { useNavigate } from "react-router-dom";
+// Conjunto de ícones usados para tornar o painel mais informativo.
 import {
   Bell,
   Book,
@@ -26,6 +30,7 @@ import {
   Save,
 } from "lucide-react";
 import "./Bibliotecario.css";
+// Chamadas ao backend centralizadas em um serviço próprio.
 import {
   fetchBooks,
   createBook as createBookApi,
@@ -41,6 +46,7 @@ import {
   deleteLibrarian as deleteLibrarianApi,
 } from "../../services/api";
 
+// Chaves utilizadas no localStorage para compartilhar dados entre abas.
 const K_BOOKS = "leiasj_books_v1";
 const K_USERS = "leiasj_users_v1";
 const K_LOANS = "leiasj_loans_v1";
@@ -53,7 +59,8 @@ export default function Bibliotecario() {
   // ===== Estado geral =====
   const [tab, setTab] = useState("livros");
 
-  // Livros
+  // Livros: estados responsáveis pelo catálogo local, buscas na API do Google
+  // e formulário de criação manual.
   const [books, setBooks] = useState([]);
   const [termo, setTermo] = useState("");
   const [resultados, setResultados] = useState([]);
@@ -66,7 +73,7 @@ export default function Bibliotecario() {
     capa: "",
   });
 
-  // Edição de livro
+  // Edição de livro: controla qual item está sendo editado diretamente no grid.
   const [editId, setEditId] = useState(null);
   const [editBook, setEditBook] = useState({
     titulo: "",
@@ -77,7 +84,8 @@ export default function Bibliotecario() {
     capa: "",
   });
 
-  // Usuários
+  // Usuários: coleção completa de perfis carregados do backend e estados de
+  // suporte para trocar senhas ou cadastrar novos bibliotecários.
   const [users, setUsers] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [novaSenha, setNovaSenha] = useState("");
@@ -90,16 +98,17 @@ export default function Bibliotecario() {
     senha: "",
   });
 
-  // Empréstimos
+  // Empréstimos controlados pelo bibliotecário.
   const [emprestimos, setEmprestimos] = useState([]);
 
-  // Sessão + Notificações
+  // Sessão + Notificações: controla o usuário logado, os alertas e recursos de som.
   const [bibliotecario, setBibliotecario] = useState(null);
   const [notifs, setNotifs] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const seenIdsRef = useRef(new Set());
   const audioRef = useRef(null);
 
+  // Busca o catálogo diretamente do backend e o mantém sincronizado no cache.
   const carregarLivros = useCallback(async () => {
     try {
       const dados = await fetchBooks();
@@ -110,6 +119,7 @@ export default function Bibliotecario() {
     }
   }, []);
 
+  // Carrega alunos e bibliotecários cadastrados na base de dados.
   const carregarUsuarios = useCallback(async () => {
     try {
       const [dadosAlunos, dadosBibliotecarios] = await Promise.all([
@@ -162,12 +172,14 @@ export default function Bibliotecario() {
   };
   const isAtrasado = (prazo) => prazo && prazo < todayISO();
 
+  // Converte o campo "ano" para número, ignorando valores inválidos.
   const normalizarAno = (valor) => {
     const numero = Number.parseInt(valor, 10);
     return Number.isNaN(numero) ? null : numero;
   };
 
   // ===== Init =====
+  // Recupera dados armazenados localmente assim que o painel abre.
   useEffect(() => {
     const armazenados = JSON.parse(localStorage.getItem(K_BOOKS)) || [];
     if (armazenados.length) {
@@ -182,6 +194,7 @@ export default function Bibliotecario() {
     carregarUsuarios();
   }, [carregarLivros, carregarUsuarios]);
 
+  // Encerra a sessão do bibliotecário no backend e limpa o cache local.
   const sair = async () => {
     if (window.confirm("Deseja realmente sair?")) {
       try {
@@ -195,11 +208,13 @@ export default function Bibliotecario() {
   };
 
   // ===== Notificações =====
+  // Atualiza o estado e o localStorage com as notificações atuais.
   const persistNotifs = useCallback((next) => {
     setNotifs(next);
     localStorage.setItem(K_NOTIFS, JSON.stringify(next));
   }, []);
 
+  // Adiciona uma nova notificação no topo da lista e toca um alerta sonoro.
   const pushNotif = useCallback(
     ({ type, text, refId }) => {
       const n = {
@@ -217,6 +232,7 @@ export default function Bibliotecario() {
     [persistNotifs]
   );
 
+  // Marca todas as notificações como lidas ao abrir o painel.
   const markAllRead = useCallback(() => {
     const next = notifs.map((n) => ({ ...n, read: true }));
     persistNotifs(next);
@@ -228,6 +244,8 @@ export default function Bibliotecario() {
   );
 
   // ===== Verificação automática de empréstimos (novos/ prazos) =====
+  // Observa o armazenamento local em busca de novos empréstimos ou prazos
+  // próximos, criando notificações automáticas para o time da biblioteca.
   const checkLoansAndNotify = useCallback(() => {
     const freshLoans = JSON.parse(localStorage.getItem(K_LOANS)) || [];
     setEmprestimos(freshLoans);
@@ -277,6 +295,7 @@ export default function Bibliotecario() {
   }, [checkLoansAndNotify]);
 
   // ===== Livros =====
+  // Realiza pesquisa externa na API do Google Books e prepara os resultados.
   async function buscarNaAPI(e) {
     e.preventDefault();
     if (!termo.trim()) return;
@@ -310,6 +329,7 @@ export default function Bibliotecario() {
     }
   }
 
+  // Salva um novo livro digitado manualmente pelo bibliotecário.
   const adicionarLivroManual = async (e) => {
     e.preventDefault();
     if (!novoLivro.titulo || !novoLivro.autor)
@@ -337,6 +357,7 @@ export default function Bibliotecario() {
     }
   };
 
+  // Persiste no banco um dos livros retornados pela busca externa.
   const adicionarLivroAPI = async (livro) => {
     try {
       await createBookApi({
@@ -353,6 +374,7 @@ export default function Bibliotecario() {
     }
   };
 
+  // Remove definitivamente um livro do catálogo.
   const excluirLivro = async (id) => {
     if (!window.confirm("Excluir este livro?")) return;
     try {
@@ -364,6 +386,7 @@ export default function Bibliotecario() {
   };
 
   // Edição completa do livro
+  // Preenche o formulário de edição com os dados do livro selecionado.
   const startEditBook = (b) => {
     setEditId(b.id);
     setEditBook({
@@ -376,6 +399,7 @@ export default function Bibliotecario() {
     });
   };
 
+  // Limpa o modo de edição e restaura o formulário padrão.
   const cancelEditBook = () => {
     setEditId(null);
     setEditBook({
@@ -388,6 +412,7 @@ export default function Bibliotecario() {
     });
   };
 
+  // Envia para a API as alterações feitas diretamente no cartão de livro.
   const saveEditBook = async () => {
     if (!editBook.titulo || !editBook.autor)
       return alert("Preencha ao menos Título e Autor.");
@@ -408,6 +433,7 @@ export default function Bibliotecario() {
   };
 
   // ===== Empréstimos =====
+  // Atualiza apenas a data prevista de devolução de um empréstimo.
   const setPrazo = (eid, dataISO) => {
     const next = emprestimos.map((x) =>
       x.id === eid ? { ...x, prazo: dataISO } : x
@@ -416,6 +442,7 @@ export default function Bibliotecario() {
     localStorage.setItem(K_LOANS, JSON.stringify(next));
   };
 
+  // Confirma um empréstimo pendente e reduz o estoque do livro.
   const aprovarEmprestimo = async (eid) => {
     // atualiza empréstimo
     const nextLoans = emprestimos.map((x) =>
@@ -452,6 +479,7 @@ export default function Bibliotecario() {
     pushNotif({ type: "info", text: "Empréstimo aprovado.", refId: eid });
   };
 
+  // Registra a devolução e reabastece a quantidade do livro.
   const marcarDevolvido = async (eid) => {
     // atualiza empréstimo
     const nextLoans = emprestimos.map((x) =>
@@ -531,14 +559,17 @@ export default function Bibliotecario() {
     }
   };
 
+  // Alterna a visibilidade de uma senha específica na tabela.
   const toggleShowPass = (id) =>
     setShowPassMap((m) => ({ ...m, [id]: !m[id] }));
 
+  // Coloca o usuário em modo de edição de senha.
   const startEdit = (u) => {
     setEditingId(u.id);
     setNovaSenha("");
   };
 
+  // Dispara a troca de senha no backend ou localmente quando aplicável.
   const salvarSenha = async (u) => {
     if (!novaSenha || novaSenha.length < 4)
       return alert("A nova senha deve ter pelo menos 4 caracteres.");
@@ -580,6 +611,7 @@ export default function Bibliotecario() {
     alert(`Senha de "${u.nome}" atualizada!`);
   };
 
+  // Remove o usuário escolhido, respeitando as permissões de cada tipo.
   const excluirUsuario = async (u) => {
     if (!window.confirm(`Excluir o usuário "${u.nome}"?`)) return;
     if (u.tipo === "aluno") {
@@ -626,6 +658,7 @@ export default function Bibliotecario() {
 
   return (
     <div className="bib-page">
+      {/* Áudio usado para notificar novos eventos */}
       <audio ref={audioRef} src="/notification.mp3" preload="auto" />
       <header className="bib-top">
         <h2>
@@ -1246,6 +1279,7 @@ export default function Bibliotecario() {
 
 /* ========= Subcomponentes ========= */
 
+// Tabela genérica utilizada para listar alunos, funcionários e bibliotecários.
 function UserTable({ titulo, columns, data, renderRow, vazio }) {
   return (
     <div className="card">
@@ -1272,6 +1306,7 @@ function UserTable({ titulo, columns, data, renderRow, vazio }) {
   );
 }
 
+// Célula reutilizável responsável por exibir e redefinir senhas.
 function SenhaCell({
   u,
   showPassMap,

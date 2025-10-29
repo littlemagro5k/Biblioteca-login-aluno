@@ -1,13 +1,19 @@
+// Hooks e ícones utilizados na área do aluno/funcionário.
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, User, AlertTriangle } from "lucide-react";
 import "./Usuario.css";
 import { fetchBooks } from "../../services/api";
 
+// Painel voltado ao estudante/funcionário que consulta o catálogo de livros.
 export default function Usuario() {
+  // Catálogo carregado da API ou do cache.
   const [livros, setLivros] = useState([]);
+  // Dados do usuário atualmente logado.
   const [usuario, setUsuario] = useState(null);
+  // Lista de notificações relacionadas a prazos de empréstimo.
   const [notificacoes, setNotificacoes] = useState([]);
+  // Estado que controla a abertura do painel de notificações.
   const [mostrarNotificacoes, setMostrarNotificacoes] = useState(false);
   const navigate = useNavigate();
 
@@ -36,6 +42,7 @@ export default function Usuario() {
   }, [navigate]);
 
   // === Solicitação de empréstimo ===
+  // Salva um pedido de empréstimo no localStorage para o bibliotecário analisar.
   const solicitarEmprestimo = (livro) => {
     if (!usuario) return alert("Você precisa estar logado para solicitar.");
     if (Number(livro.quantidade) <= 0) {
@@ -59,6 +66,7 @@ export default function Usuario() {
   };
 
   // === Verificação de prazos ===
+  // Analisa periodicamente os empréstimos do usuário para avisar sobre prazos.
   const verificarPrazos = useCallback(() => {
     const emprestimos =
       JSON.parse(localStorage.getItem("leiasj_loans_v1")) || [];
@@ -93,6 +101,7 @@ export default function Usuario() {
   }, [usuario, verificarPrazos]);
 
   // === Logout ===
+  // Remove o registro local da sessão e retorna para a tela de login.
   const handleLogout = () => {
     if (window.confirm("Tem certeza que deseja sair?")) {
       localStorage.removeItem("leiasj_logged_user");
@@ -102,6 +111,7 @@ export default function Usuario() {
 
   return (
     <div className="usuario-page">
+      {/* Cabeçalho com identificação do usuário e ícones de alerta */}
       <header className="usuario-header">
         <h2>Catálogo de Livros</h2>
         {usuario && (
@@ -173,6 +183,7 @@ export default function Usuario() {
             const indisponivel = Number(livro.quantidade) <= 0;
             return (
               <div key={livro.id} className="livro-card">
+                {/* Exibe a capa cadastrada ou uma imagem genérica caso não exista */}
                 <img
                   src={
                     livro.capa ||

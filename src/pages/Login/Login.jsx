@@ -1,3 +1,4 @@
+// Dependências de React e das APIs utilizadas na tela de autenticação.
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -8,9 +9,12 @@ import {
   loginStudent,
 } from "../../services/api";
 
+// Página responsável por concentrar login e cadastro de alunos/funcionários.
 export default function Login() {
+  // Estados que controlam o modo (login ou cadastro) e o tipo de perfil ativo.
   const [modo, setModo] = useState("login");
   const [tipo, setTipo] = useState("aluno");
+  // Campos compartilhados pelos formulários.
   const [nome, setNome] = useState("");
   const [serie, setSerie] = useState("");
   const [sala, setSala] = useState("");
@@ -19,6 +23,7 @@ export default function Login() {
   const [codigo, setCodigo] = useState("");
   const navigate = useNavigate();
 
+  // Listas auxiliares utilizadas pelos campos de seleção.
   const funcoes = [
     "Professor",
     "Diretoria",
@@ -29,6 +34,8 @@ export default function Login() {
   const series = ["6º", "7º", "8º", "9º", "1º", "2º", "3º", "EJA"];
   const salas = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
+  // Sempre que o tipo de usuário muda, limpamos campos desnecessários para
+  // evitar que dados antigos sejam enviados para a API por engano.
   useEffect(() => {
     if (tipo !== "aluno") {
       setSerie("");
@@ -44,6 +51,8 @@ export default function Login() {
     }
   }, [tipo]);
 
+  // Valida o preenchimento do nome. Para alunos e funcionários exigimos nome
+  // completo (com espaço); para bibliotecários aceitamos qualquer texto.
   function validarNomeCompleto(nomeAtual, tipoAtual = tipo) {
     if (tipoAtual === "bibliotecario") {
       return nomeAtual.trim().length > 0;
@@ -51,6 +60,8 @@ export default function Login() {
     return nomeAtual.trim().split(" ").length >= 2;
   }
 
+  // Ponto central da tela: decide entre login ou cadastro, chama as APIs e
+  // sincroniza os dados salvos no localStorage.
   async function handleSubmit(e) {
     e.preventDefault();
     if (!validarNomeCompleto(nome, tipo))
@@ -62,6 +73,7 @@ export default function Login() {
     const nomeLower = nomeFormatado.toLowerCase();
     const codigoFormatado = codigo.trim();
 
+    // Chave única utilizada para sincronizar o cache de usuários no navegador.
     const key = "leiasj_users_v1";
     const users = JSON.parse(localStorage.getItem(key)) || [];
 
@@ -238,6 +250,7 @@ export default function Login() {
     navigate("/usuario");
   }
 
+  // Estrutura visual do formulário, com cartões e campos condicionais.
   return (
     <div className="login-page d-flex align-items-center justify-content-center">
       <div className="card p-4 shadow-lg login-box">

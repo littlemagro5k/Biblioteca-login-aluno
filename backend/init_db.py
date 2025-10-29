@@ -4,6 +4,8 @@ DB_PATH = 'biblioteca.db'
 
 
 def ensure_columns(cursor, table, columns):
+    """Adiciona colunas que ainda não existem na tabela informada."""
+
     existing = {row[1] for row in cursor.execute(f"PRAGMA table_info({table})")}
     for column, definition in columns:
         if column not in existing:
@@ -11,6 +13,8 @@ def ensure_columns(cursor, table, columns):
 
 
 def criar_banco():
+    """Cria as tabelas necessárias e popula dados iniciais."""
+
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
@@ -93,6 +97,7 @@ def criar_banco():
             livros,
         )
 
+    # Tabela antiga mantida por compatibilidade — removemos para evitar conflito.
     cur.execute('DROP TABLE IF EXISTS usuarios')
 
     cur.execute(
@@ -124,6 +129,7 @@ def criar_banco():
         ("AdmLeia", "LEIA-SJ-2025"),
     )
     if cur.fetchone() is None:
+        # Usuário administrador padrão para facilitar o primeiro acesso.
         cur.execute(
             '''
             INSERT INTO bibliotecarios (nome_completo, codigo, senha)
