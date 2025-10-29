@@ -1,3 +1,5 @@
+// Página destinada aos estudantes (ou demais usuários não administradores).
+// Exibe o catálogo de livros e permite enviar pedidos de empréstimo.
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, User, AlertTriangle } from "lucide-react";
@@ -5,8 +7,11 @@ import "./Usuario.css";
 import { fetchBooks } from "../../services/api";
 
 export default function Usuario() {
+  // Estado com a lista de livros disponível para consulta.
   const [livros, setLivros] = useState([]);
+  // Informações do usuário logado (nome, tipo etc.).
   const [usuario, setUsuario] = useState(null);
+  // Lista de notificações sobre prazos próximos.
   const [notificacoes, setNotificacoes] = useState([]);
   const [mostrarNotificacoes, setMostrarNotificacoes] = useState(false);
   const navigate = useNavigate();
@@ -25,6 +30,7 @@ export default function Usuario() {
       setLivros(livrosSalvos);
     }
 
+    // Busca atualizada no backend garantindo sincronização com o banco real.
     fetchBooks()
       .then((dados) => {
         setLivros(dados);

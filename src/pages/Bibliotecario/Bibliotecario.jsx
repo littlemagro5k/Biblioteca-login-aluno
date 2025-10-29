@@ -1,3 +1,6 @@
+// Painel completo utilizado pelos bibliotecários para gerenciar o acervo,
+// controlar usuários e acompanhar empréstimos. Esta tela concentra praticamente
+// toda a lógica administrativa do projeto.
 import React, {
   useEffect,
   useMemo,
@@ -41,6 +44,7 @@ import {
   deleteLibrarian as deleteLibrarianApi,
 } from "../../services/api";
 
+// Chaves utilizadas para organizar os dados no localStorage do navegador.
 const K_BOOKS = "leiasj_books_v1";
 const K_USERS = "leiasj_users_v1";
 const K_LOANS = "leiasj_loans_v1";
@@ -100,6 +104,7 @@ export default function Bibliotecario() {
   const seenIdsRef = useRef(new Set());
   const audioRef = useRef(null);
 
+  // Busca do catálogo diretamente no backend, atualizando o cache local.
   const carregarLivros = useCallback(async () => {
     try {
       const dados = await fetchBooks();
@@ -110,6 +115,8 @@ export default function Bibliotecario() {
     }
   }, []);
 
+  // Atualiza alunos e bibliotecários cadastrados, preservando outros usuários
+  // que possam existir apenas no armazenamento local.
   const carregarUsuarios = useCallback(async () => {
     try {
       const [dadosAlunos, dadosBibliotecarios] = await Promise.all([
@@ -154,6 +161,7 @@ export default function Bibliotecario() {
   }, []);
 
   // ===== Helpers =====
+  // Helpers que tratam datas no formato ISO (YYYY-MM-DD) para padronizar o uso.
   const todayISO = () => new Date().toISOString().slice(0, 10);
   const addDaysISO = (startISO, days) => {
     const d = new Date(startISO);
@@ -162,6 +170,7 @@ export default function Bibliotecario() {
   };
   const isAtrasado = (prazo) => prazo && prazo < todayISO();
 
+  // Converte textos vindos do formulário em números ou nulos para o banco.
   const normalizarAno = (valor) => {
     const numero = Number.parseInt(valor, 10);
     return Number.isNaN(numero) ? null : numero;
@@ -200,6 +209,7 @@ export default function Bibliotecario() {
     localStorage.setItem(K_NOTIFS, JSON.stringify(next));
   }, []);
 
+  // Adiciona uma nova notificação ao histórico e dispara o áudio de alerta.
   const pushNotif = useCallback(
     ({ type, text, refId }) => {
       const n = {
@@ -217,6 +227,7 @@ export default function Bibliotecario() {
     [persistNotifs]
   );
 
+  // Marca todas as notificações como lidas assim que o painel é aberto.
   const markAllRead = useCallback(() => {
     const next = notifs.map((n) => ({ ...n, read: true }));
     persistNotifs(next);

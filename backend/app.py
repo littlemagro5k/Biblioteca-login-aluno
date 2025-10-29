@@ -1,3 +1,10 @@
+"""API Flask responsável por todas as operações de biblioteca.
+
+Este arquivo concentra rotas de autenticação, gerenciamento de alunos,
+bibliotecários e livros. Cada função possui comentários explicando a função
+principal para que novas turmas compreendam rapidamente o fluxo da aplicação.
+"""
+
 import importlib.util
 import os
 import sqlite3
@@ -23,13 +30,17 @@ try:  # Permite executar como pacote (backend.app) ou script direto.
 except ImportError:  # pragma: no cover - fallback quando executado diretamente
     from init_db import criar_banco
 
+# Configuração básica do Flask. static_folder aponta para o build do frontend.
 app = Flask(__name__, static_folder='static', static_url_path='')
+# Atenção: em produção essa chave deve ser guardada em local seguro.
 app.secret_key = 'chave_super_secreta'  # troque por algo seguro
 
 DB = 'biblioteca.db'
 
 
 def _ensure_schema():
+    """Cria as tabelas necessárias caso o banco ainda não exista."""
+
     try:
         criar_banco()
     except Exception as exc:  # pragma: no cover - log and continue
@@ -40,12 +51,16 @@ _ensure_schema()
 
 
 def conectar():
+    """Abre uma conexão com o SQLite retornando linhas acessíveis por nome."""
+
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def row_to_livro(row):
+    """Transforma um registro da tabela livros em dicionário serializável."""
+
     return {
         'id': row['id'],
         'titulo': row['titulo'],
@@ -58,6 +73,8 @@ def row_to_livro(row):
 
 
 def row_to_aluno(row, include_password=False):
+    """Formata o aluno para o padrão consumido pelo frontend."""
+
     return {
         'id': row['id'],
         'nomeCompleto': row['nome_completo'],
@@ -68,6 +85,8 @@ def row_to_aluno(row, include_password=False):
 
 
 def row_to_bibliotecario(row, include_password=False):
+    """Formata bibliotecários, com senha opcional para uso administrativo."""
+
     payload = {
         'id': row['id'],
         'nomeCompleto': row['nome_completo'],
@@ -81,6 +100,8 @@ def row_to_bibliotecario(row, include_password=False):
 
 @app.route('/')
 def index():
+    """Entrega o arquivo estático do frontend quando disponível."""
+
     if app.static_folder:
         index_path = os.path.join(app.static_folder, 'index.html')
         if os.path.exists(index_path):
@@ -95,6 +116,8 @@ def index():
 
 @app.route('/api/bibliotecario/login', methods=['POST'])
 def login_bibliotecario():
+    """Valida credenciais do bibliotecário e cria sessão na API."""
+
     data = request.get_json() or {}
     nome = (data.get('nomeCompleto') or '').strip()
     codigo = (data.get('codigo') or '').strip()
@@ -137,6 +160,8 @@ def login_bibliotecario():
 
 
 def _listar_alunos():
+    """Retorna todos os alunos cadastrados, com filtro opcional por nome."""
+
     if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
@@ -171,6 +196,8 @@ def _listar_alunos():
 
 
 def _cadastrar_aluno():
+    """Recebe dados do formulário e cria um novo aluno."""
+
     data = request.get_json() or {}
     nome = (data.get('nomeCompleto') or '').strip()
     serie = (data.get('serie') or '').strip()
@@ -228,6 +255,8 @@ def _cadastrar_aluno():
 
 @app.route('/api/alunos', methods=['GET', 'POST'])
 def gerenciar_alunos():
+    """Endpoint que direciona POST para cadastro e GET para listagem."""
+
     if request.method == 'POST':
         return _cadastrar_aluno()
     return _listar_alunos()
@@ -235,6 +264,8 @@ def gerenciar_alunos():
 
 @app.route('/api/alunos/<int:aluno_id>', methods=['PUT'])
 def atualizar_aluno(aluno_id):
+    """Permite editar informações de um aluno específico."""
+
     if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
@@ -298,6 +329,8 @@ def atualizar_aluno(aluno_id):
 
 @app.route('/api/alunos/<int:aluno_id>', methods=['DELETE'])
 def excluir_aluno(aluno_id):
+    """Remove um aluno do sistema."""
+
     if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
@@ -316,6 +349,8 @@ def excluir_aluno(aluno_id):
 
 @app.route('/api/alunos/login', methods=['POST'])
 def login_aluno():
+    """Permite que o aluno confirme seus dados e acesse o app."""
+
     data = request.get_json() or {}
     nome = (data.get('nomeCompleto') or '').strip()
     senha = data.get('senha') or ''
@@ -344,6 +379,8 @@ def login_aluno():
 
 
 def _listar_bibliotecarios():
+    """Lista bibliotecários cadastrados, permitindo busca por nome/código."""
+
     if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
@@ -380,6 +417,8 @@ def _listar_bibliotecarios():
 
 
 def _cadastrar_bibliotecario():
+    """Cria um bibliotecário (somente quando já há alguém autenticado)."""
+
     if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
@@ -434,6 +473,8 @@ def _cadastrar_bibliotecario():
 
 
 def _atualizar_bibliotecario(bibliotecario_id):
+    """Atualiza dados sensíveis como senha, código e turno."""
+
     if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
@@ -508,6 +549,8 @@ def _atualizar_bibliotecario(bibliotecario_id):
 
 
 def _excluir_bibliotecario(bibliotecario_id):
+    """Apaga bibliotecário do banco de dados."""
+
     if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
@@ -526,6 +569,8 @@ def _excluir_bibliotecario(bibliotecario_id):
 
 @app.route('/api/bibliotecarios', methods=['GET', 'POST'])
 def gerenciar_bibliotecarios():
+    """Agrupa GET (listagem) e POST (cadastro) em um único endpoint."""
+
     if request.method == 'POST':
         return _cadastrar_bibliotecario()
     return _listar_bibliotecarios()
@@ -533,6 +578,8 @@ def gerenciar_bibliotecarios():
 
 @app.route('/api/bibliotecarios/<int:bibliotecario_id>', methods=['PUT', 'DELETE'])
 def modificar_bibliotecario(bibliotecario_id):
+    """Encaminha atualizações ou exclusões conforme o método HTTP."""
+
     if request.method == 'PUT':
         return _atualizar_bibliotecario(bibliotecario_id)
     return _excluir_bibliotecario(bibliotecario_id)
@@ -540,6 +587,8 @@ def modificar_bibliotecario(bibliotecario_id):
 
 @app.route('/logout', methods=['POST'])
 def logout():
+    """Finaliza a sessão do bibliotecário logado."""
+
     session.pop('bibliotecario_id', None)
     session.pop('bibliotecario_nome', None)
     return jsonify({'mensagem': 'Logout realizado'})
@@ -547,6 +596,8 @@ def logout():
 
 @app.route('/api/livros', methods=['GET'])
 def listar_livros():
+    """Retorna os livros cadastrados, com busca parcial por título ou autor."""
+
     busca = request.args.get('busca', '').strip()
     conn = conectar()
     cur = conn.cursor()
@@ -578,6 +629,8 @@ def listar_livros():
 
 @app.route('/api/livros', methods=['POST'])
 def adicionar_livro():
+    """Inclui um novo livro no catálogo controlando validações básicas."""
+
     if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
@@ -630,6 +683,8 @@ def adicionar_livro():
 
 @app.route('/api/livros/<int:livro_id>', methods=['PUT'])
 def atualizar_livro(livro_id):
+    """Atualiza campos individuais de um livro existente."""
+
     if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
@@ -693,6 +748,8 @@ def atualizar_livro(livro_id):
 
 @app.route('/api/livros/<int:livro_id>', methods=['DELETE'])
 def excluir_livro(livro_id):
+    """Exclui um livro do banco após confirmar permissão."""
+
     if 'bibliotecario_id' not in session:
         return jsonify({'erro': 'Não autorizado'}), 403
 
