@@ -1,5 +1,16 @@
 const JSON_CONTENT = 'application/json';
 
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
+function resolvePath(path) {
+  if (!API_BASE) {
+    return path;
+  }
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE}${normalizedPath}`;
+}
+
 async function request(path, { method = 'GET', body, headers = {} } = {}) {
   const options = {
     method,
@@ -12,7 +23,7 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
     options.headers['Content-Type'] = JSON_CONTENT;
   }
 
-  const response = await fetch(path, options);
+  const response = await fetch(resolvePath(path), options);
   const contentType = response.headers.get('content-type') || '';
   const isJson = contentType.includes(JSON_CONTENT);
   const payload = isJson ? await response.json() : await response.text();

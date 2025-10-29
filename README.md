@@ -42,10 +42,24 @@ Este projeto reúne o backend em Flask/SQLite e o frontend em React (Vite) para 
    npm run preview
    ```
    O comando `npm run preview` serve o build pronto em `http://localhost:4173`.
+   > Para ambientes hospedados (como a Vercel), defina a variável `VITE_API_URL` apontando para a URL pública da API Flask (ex.: `https://sua-api.exemplo.com`). As requisições do frontend utilizarão automaticamente esse endereço quando presente.
 
-## 4. Abrir no Google Chrome
+## 4. Deploy do backend no Render
+1. Faça o push do repositório para o GitHub (ou outro provedor) contendo este projeto.
+2. Com a conta criada no [Render](https://render.com), clique em **New + → Web Service** e conecte o repositório.
+3. Quando o Render detectar o projeto, confirme as opções:
+   - **Runtime**: Python (detectado automaticamente por causa do `requirements.txt`).
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn backend.app:app`
+4. Em **Environment Variables**, garanta que exista uma variável `FLASK_SECRET_KEY`. Você pode usar o botão *Generate* ou definir um valor próprio. Caso deseje armazenar o banco em um volume persistente, crie também a variável `DATABASE_PATH` apontando para `/var/data/biblioteca.db`.
+5. Adicione um **Persistent Disk** com pelo menos 1 GB, montado em `/var/data`, para que o arquivo SQLite não seja perdido a cada deploy. O arquivo `render.yaml` incluso no repositório já descreve essa configuração; basta importá-lo na tela de criação ou mantê-lo no repositório para deploys automatizados.
+6. Salve e aguarde o Render instalar as dependências, preparar o banco (os dados iniciais são criados automaticamente) e iniciar a API. Ao final, copie a URL pública gerada (por exemplo, `https://biblioteca-backend.onrender.com`).
+
+> Sempre que fizer alterações no backend, um novo deploy será disparado automaticamente. Como o banco está em um disco persistente, os dados inseridos via painel são mantidos entre deploys.
+
+## 5. Abrir no Google Chrome
 - **Modo desenvolvimento:** `http://localhost:5173`
 - **Build de produção (preview):** `http://localhost:4173`
 - **Servido pelo Flask:** `http://localhost:5000`
 
-Certifique-se de manter o backend rodando em um terminal e o frontend em outro para que todas as rotas funcionem corretamente.
+Certifique-se de manter o backend rodando em um terminal e o frontend em outro para que todas as rotas funcionem corretamente. Depois de publicar o backend no Render, configure `VITE_API_URL` na Vercel (ou outro host do frontend) usando a URL copiada no passo anterior.

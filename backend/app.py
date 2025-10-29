@@ -1,6 +1,7 @@
 import importlib.util
 import os
 import sqlite3
+from pathlib import Path
 
 
 def _ensure_flask_installed() -> None:
@@ -8,7 +9,7 @@ def _ensure_flask_installed() -> None:
 
     if importlib.util.find_spec('flask') is None:
         mensagem = (
-            'Flask não está instalado. Execute `pip install -r backend/requeriments.txt` '
+            'Flask não está instalado. Execute `pip install -r backend/requirements.txt` '
             'ou `pip install -r requirements.txt` antes de iniciar o servidor.'
         )
         raise SystemExit(mensagem)
@@ -24,14 +25,16 @@ except ImportError:  # pragma: no cover - fallback quando executado diretamente
     from init_db import criar_banco
 
 app = Flask(__name__, static_folder='static', static_url_path='')
-app.secret_key = 'chave_super_secreta'  # troque por algo seguro
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'chave_super_secreta')
 
-DB = 'biblioteca.db'
+DB = os.environ.get('DATABASE_PATH', 'biblioteca.db')
+if Path(DB).parent != Path('.'):
+    Path(DB).parent.mkdir(parents=True, exist_ok=True)
 
 
 def _ensure_schema():
     try:
-        criar_banco()
+        criar_banco(DB)
     except Exception as exc:  # pragma: no cover - log and continue
         raise SystemExit(f'Falha ao preparar o banco de dados: {exc}')
 

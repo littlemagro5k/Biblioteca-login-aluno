@@ -1,6 +1,15 @@
+import os
+from pathlib import Path
 import sqlite3
 
-DB_PATH = 'biblioteca.db'
+DEFAULT_DB_PATH = 'biblioteca.db'
+
+
+def _resolve_db_path(db_path=None):
+    path = Path(db_path or os.environ.get('DATABASE_PATH') or DEFAULT_DB_PATH)
+    if path.parent != Path('.'):
+        path.parent.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def ensure_columns(cursor, table, columns):
@@ -10,8 +19,9 @@ def ensure_columns(cursor, table, columns):
             cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
-def criar_banco():
-    conn = sqlite3.connect(DB_PATH)
+def criar_banco(db_path=None):
+    path = _resolve_db_path(db_path)
+    conn = sqlite3.connect(path)
     cur = conn.cursor()
 
     cur.execute(
@@ -134,7 +144,7 @@ def criar_banco():
 
     conn.commit()
     conn.close()
-    print('Banco e tabelas criados/atualizados com sucesso!')
+    print(f'Banco e tabelas criados/atualizados com sucesso em "{path}"!')
 
 
 if __name__ == '__main__':
